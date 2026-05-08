@@ -14,7 +14,7 @@ export default function Endpoints({ endpoints, onAdd, onDelete }) {
   return (
     <div className="endpoints-page">
       <div className="endpoints-header">
-        <h2>⚙️ Monitored Endpoints ({endpoints.length})</h2>
+        <h2>Monitored Endpoints ({endpoints.length})</h2>
         <button className="btn-add" onClick={() => setAdding(!adding)}>
           {adding ? "Cancel" : "+ Add Endpoint"}
         </button>
@@ -62,7 +62,7 @@ export default function Endpoints({ endpoints, onAdd, onDelete }) {
               </span>
             </div>
             <button className="btn-delete" onClick={() => onDelete(ep.id)}>
-              🗑 Delete
+              Delete
             </button>
           </div>
         ))}

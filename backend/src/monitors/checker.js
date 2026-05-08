@@ -1,5 +1,5 @@
 // checker.js - The heart of NIACS
-// Checks each stage of a network request: DNS → TCP → TLS → HTTP
+// Checks each stage of a network request: DNS -> TCP -> TLS -> HTTP
 
 const https = require("https");
 const http = require("http");
@@ -33,7 +33,6 @@ async function checkEndpoint(endpoint, nodeId) {
   const hostname = parsedUrl.hostname;
   const isHttps = parsedUrl.protocol === "https:";
 
-  // STAGE 1: DNS Resolution
   try {
     await resolveDns(hostname);
   } catch (err) {
@@ -43,7 +42,6 @@ async function checkEndpoint(endpoint, nodeId) {
     return result;
   }
 
-  // STAGES 2 (TCP) + 3 (TLS) + 4 (HTTP)
   try {
     const httpResult = await makeHttpRequest(endpoint.url, endpoint.timeout, isHttps);
     result.httpStatus = httpResult.statusCode;

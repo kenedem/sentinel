@@ -8,7 +8,7 @@ export default function Logs({ logs }) {
 
   return (
     <div className="logs-page">
-      <h2>📋 Check Logs ({logs.length} recent entries)</h2>
+      <h2>Check Logs ({logs.length} recent entries)</h2>
       <div className="logs-table-wrapper">
         <table className="logs-table">
           <thead>
@@ -30,7 +30,7 @@ export default function Logs({ logs }) {
                 <td>{log.nodeId}</td>
                 <td>
                   <span className={`status-pill ${log.success ? "up" : "down"}`}>
-                    {log.success ? "✅ UP" : "❌ DOWN"}
+                    {log.success ? "UP" : "DOWN"}
                   </span>
                 </td>
                 <td>
@@ -41,10 +41,10 @@ export default function Logs({ logs }) {
                     >
                       {log.failureStage}
                     </span>
-                  ) : "—"}
+                  ) : "-"}
                 </td>
-                <td>{log.httpStatus || "—"}</td>
-                <td>{log.responseTime ? `${log.responseTime}ms` : "—"}</td>
+                <td>{log.httpStatus || "-"}</td>
+                <td>{log.responseTime ? `${log.responseTime}ms` : "-"}</td>
               </tr>
             ))}
           </tbody>

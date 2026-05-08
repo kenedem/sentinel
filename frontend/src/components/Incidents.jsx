@@ -14,7 +14,7 @@ export default function Incidents({ incidents, onResolve }) {
       <div className="incident-header">
         <div>
           <span className="incident-icon">
-            {incident.status === "open" ? "🚨" : "✅"}
+            {incident.status === "open" ? "[Open]" : "[Resolved]"}
           </span>
           <strong>{incident.endpointName}</strong>
           <span className="incident-url">{incident.endpointUrl}</span>
@@ -34,13 +34,13 @@ export default function Incidents({ incidents, onResolve }) {
         </div>
       </div>
       <div className="incident-details">
-        <span>🕒 {new Date(incident.timestamp).toLocaleString()}</span>
+        <span>Time: {new Date(incident.timestamp).toLocaleString()}</span>
         <span>
-          📡 Confirmed by {incident.confirmedBy}/{incident.totalNodes} nodes:{" "}
+          Confirmed by {incident.confirmedBy}/{incident.totalNodes} nodes:{" "}
           {incident.failedNodes.join(", ")}
         </span>
         {incident.resolvedAt && (
-          <span>✅ Resolved: {new Date(incident.resolvedAt).toLocaleString()}</span>
+          <span>Resolved: {new Date(incident.resolvedAt).toLocaleString()}</span>
         )}
       </div>
     </div>
@@ -48,16 +48,16 @@ export default function Incidents({ incidents, onResolve }) {
 
   return (
     <div className="incidents-page">
-      <h2>🚨 Open Incidents ({open.length})</h2>
+      <h2>Open Incidents ({open.length})</h2>
       {open.length === 0 ? (
-        <div className="empty-state">✅ No open incidents — all services healthy</div>
+        <div className="empty-state">No open incidents - all services healthy</div>
       ) : (
         open.map((i) => <IncidentCard key={i.id} incident={i} />)
       )}
 
       {resolved.length > 0 && (
         <>
-          <h2 style={{ marginTop: "2rem" }}>✅ Resolved ({resolved.length})</h2>
+          <h2 style={{ marginTop: "2rem" }}>Resolved ({resolved.length})</h2>
           {resolved.map((i) => <IncidentCard key={i.id} incident={i} />)}
         </>
       )}

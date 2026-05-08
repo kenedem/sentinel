@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import Dashboard from "./components2/Dashboard";
-import Incidents from "./components2/Incidents";
-import Logs from "./components2/Logs";
-import Endpoints from "./components2/Endpoints";
-import Anomalies from "./components2/Anomalies";
-const API_BASE = "http://localhost:3001/api";
+import Dashboard from "./components/Dashboard";
+import Incidents from "./components/Incidents";
+import Logs from "./components/Logs";
+import Endpoints from "./components/Endpoints";
+import Anomalies from "./components/Anomalies";
+
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001/api";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -42,8 +43,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetchAll();
-    const interval = setInterval(fetchAll, 5000);
+    const run = () => {
+      void fetchAll();
+    };
+
+    run();
+    const interval = setInterval(run, 5000);
+
     return () => clearInterval(interval);
   }, [fetchAll]);
 
@@ -76,11 +82,21 @@ export default function App() {
   };
 
   const tabs = [
-    { id: "dashboard", label: "Dashboard", icon: "📊" },
-    { id: "anomalies", label: "Anomalies", icon: "🔍", badge: anomalies.filter((a) => a.severity === "high").length },
-    { id: "incidents", label: "Incidents", icon: "🚨", badge: incidents.filter((i) => i.status === "open").length },
-    { id: "logs", label: "Logs", icon: "📋" },
-    { id: "endpoints", label: "Endpoints", icon: "⚙️" },
+    { id: "dashboard", label: "Dashboard", icon: "Status" },
+    {
+      id: "anomalies",
+      label: "Anomalies",
+      icon: "Scan",
+      badge: anomalies.filter((a) => a.severity === "high").length,
+    },
+    {
+      id: "incidents",
+      label: "Incidents",
+      icon: "Alert",
+      badge: incidents.filter((i) => i.status === "open").length,
+    },
+    { id: "logs", label: "Logs", icon: "Logs" },
+    { id: "endpoints", label: "Endpoints", icon: "Config" },
   ];
 
   return (
@@ -88,7 +104,7 @@ export default function App() {
       <header className="header">
         <div className="header-left">
           <div className="logo">
-            <span className="logo-icon">🌐</span>
+            <span className="logo-icon">NIACS</span>
             <div>
               <h1>Sentinel</h1>
               <p>Real-Time Web Service Monitoring</p>
@@ -102,7 +118,7 @@ export default function App() {
             </span>
           )}
           <button className="btn-check-now" onClick={triggerCheckNow}>
-            ▶ Check Now
+            Check Now
           </button>
         </div>
       </header>
@@ -133,8 +149,6 @@ export default function App() {
             {activeTab === "incidents" && (
               <Incidents incidents={incidents} onResolve={resolveIncident} />
             )}
-      
-      
             {activeTab === "logs" && <Logs logs={logs} />}
             {activeTab === "endpoints" && (
               <Endpoints
