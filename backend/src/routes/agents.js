@@ -1,27 +1,28 @@
 // backend/agent/agent.js
-require('dotenv').config();  // Load .env
-const fetch = require('node-fetch'); // Make sure node-fetch@2 is installed
+require('dotenv').config();
+const fetch = require('node-fetch'); // Ensure node-fetch@2 is installed
+const { setTimeout } = require('timers/promises');
 
-// Agent config from environment
 const BASE_URL = process.env.NIACS_API_BASE || 'http://localhost:3001';
-const AGENT_ID = process.env.NIACS_AGENT_ID || 'agent-1';
+const AGENT_ID = process.env.NIACS_AGENT_ID || 'local-agent-1';
 const AGENT_NAME = process.env.NIACS_AGENT_NAME || 'Local Agent 1';
 const AGENT_REGION = process.env.NIACS_AGENT_REGION || 'us-east';
-const AGENT_TOKEN = process.env.NIACS_AGENT_TOKEN || 'my-secret-token';
+const AGENT_TOKEN = process.env.NIACS_AGENT_TOKEN || 'supersecrettoken';
 
-// How often to retry registration on failure (ms)
-const RETRY_INTERVAL = 5000;
+const RETRY_INTERVAL_MS = 5000;  // Retry registration every 5s
+const POLL_INTERVAL_MS = 30000;  // Poll endpoints every 30s
 
+// --- Register agent ---
 async function registerAgent() {
   try {
-    const res = await fetch(`${BASE_URL}/agents/register`, {
+    const res = await fetch(`${BASE_URL}/api/agents/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         agentId: AGENT_ID,
         agentName: AGENT_NAME,
         agentRegion: AGENT_REGION,
-        token: AGENT_TOKEN
+        token: AGENT_TOKEN,
       }),
     });
 
@@ -45,6 +46,66 @@ async function registerAgent() {
   }
 }
 
+// --- Fetch endpoints ---
+async function fetchEndpoints() {
+  try {
+    const res = await fetch(`${BASE_URL}/api/endpoints`);
+    if (!res.ok) throw new Error(`Failed to fetch endpoints: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error('[AGENT] Fetch endpoints error:', err.message);
+    return [];
+  }
+}
+
+// --- Check endpoint ---
+async function checkEndpoint(ep) {
+  const start = Date.now();
+  let status = 'Failed';
+  let responseTime = 0;
+
+  try {
+    const r = await fetch(ep.url, { method: ep.method });
+    responseTime = Date.now() - start;
+    status = r.status === 200 ? 'Healthy' : 'Failed';
+    console.log(`[CHECK] ${ep.url} -> ${status} (${r.status})`);
+  } catch (err) {
+    responseTime = Date.now() - start;
+    console.log(`[CHECK] ${ep.url} -> Failed (Network error)`);
+  }
+
+  // Report to backend
+  try {
+    await fetch(`${BASE_URL}/api/agents/results`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        agentId: AGENT_ID,
+        endpointId: ep.id,
+        status,
+        responseTime,
+        failureStage: status === 'Healthy' ? null : 'UNKNOWN',
+      }),
+    });
+  } catch (err) {
+    console.error('[AGENT] Failed to report result:', err.message);
+  }
+}
+
+// --- Poll all endpoints ---
+async function pollEndpoints() {
+  const endpoints = await fetchEndpoints();
+  if (!endpoints.length) {
+    console.log('[AGENT] No endpoints to poll.');
+    return;
+  }
+
+  for (const ep of endpoints) {
+    await checkEndpoint(ep);
+  }
+}
+
+// --- Start agent ---
 async function startAgent() {
   console.log('[AGENT] NIACS Agent starting...');
 
@@ -52,13 +113,19 @@ async function startAgent() {
   while (!registered) {
     registered = await registerAgent();
     if (!registered) {
-      console.log(`[AGENT] Retry registration in ${RETRY_INTERVAL / 1000}s...`);
-      await new Promise(r => setTimeout(r, RETRY_INTERVAL));
+      console.log(`[AGENT] Retry registration in ${RETRY_INTERVAL_MS / 1000}s...`);
+      await setTimeout(RETRY_INTERVAL_MS);
     }
   }
 
-  console.log('[AGENT] Agent ready for monitoring jobs...');
-  // TODO: Start polling backend for jobs once implemented
+  console.log('[AGENT] Agent is now active.');
+
+  // First poll immediately
+  await pollEndpoints();
+
+  // Schedule repeated polling
+  setInterval(pollEndpoints, POLL_INTERVAL_MS);
 }
 
+// Start the agent
 startAgent();

@@ -1,13 +1,11 @@
-// src/database.js
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const dbPath = path.join(__dirname, '../niacs.db');
 const db = new sqlite3.Database(dbPath);
 
-// Initialize tables
+// --- Initialize tables ---
 db.serialize(() => {
-  // Endpoints
   db.run(`CREATE TABLE IF NOT EXISTS endpoints (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     url TEXT NOT NULL,
@@ -16,7 +14,6 @@ db.serialize(() => {
     enabled INTEGER NOT NULL DEFAULT 1
   )`);
 
-  // Agents
   db.run(`CREATE TABLE IF NOT EXISTS agents (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -25,7 +22,6 @@ db.serialize(() => {
     enabled INTEGER NOT NULL DEFAULT 1
   )`);
 
-  // Logs
   db.run(`CREATE TABLE IF NOT EXISTS logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     endpoint_id INTEGER NOT NULL,
@@ -38,18 +34,17 @@ db.serialize(() => {
     FOREIGN KEY(agent_id) REFERENCES agents(id)
   )`);
 
-  // Incidents
   db.run(`CREATE TABLE IF NOT EXISTS incidents (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     endpoint_id INTEGER NOT NULL,
     created_at TEXT NOT NULL,
     resolved INTEGER NOT NULL DEFAULT 0,
-    failed_nodes TEXT,       -- JSON array of agent IDs
+    failed_nodes TEXT,
     failure_stage TEXT
   )`);
 });
 
-// ------------------ Promisified DB functions ------------------
+// --- DB Functions (Promises) ---
 
 // Endpoints
 function getEndpoints() {
@@ -69,34 +64,6 @@ function createEndpoint({ url, method, check_interval_sec, enabled }) {
       function(err) {
         if (err) reject(err);
         else resolve(this.lastID);
-      }
-    );
-  });
-}
-
-// Logs
-function createLog({ endpoint_id, agent_id, timestamp, status, response_time, failure_stage }) {
-  return new Promise((resolve, reject) => {
-    db.run(
-      `INSERT INTO logs (endpoint_id, agent_id, timestamp, status, response_time, failure_stage)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [endpoint_id, agent_id, timestamp, status, response_time, failure_stage || null],
-      function(err) {
-        if (err) reject(err);
-        else resolve(this.lastID);
-      }
-    );
-  });
-}
-
-function getRecentLogs(limit = 100) {
-  return new Promise((resolve, reject) => {
-    db.all(
-      `SELECT * FROM logs ORDER BY timestamp DESC LIMIT ?`,
-      [limit],
-      (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
       }
     );
   });
@@ -127,6 +94,30 @@ function getActiveAgents() {
   });
 }
 
+// Logs
+function createLog({ endpoint_id, agent_id, timestamp, status, response_time, failure_stage }) {
+  return new Promise((resolve, reject) => {
+    db.run(
+      `INSERT INTO logs (endpoint_id, agent_id, timestamp, status, response_time, failure_stage)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [endpoint_id, agent_id, timestamp, status, response_time, failure_stage || null],
+      function(err) {
+        if (err) reject(err);
+        else resolve(this.lastID);
+      }
+    );
+  });
+}
+
+function getRecentLogs(limit = 100) {
+  return new Promise((resolve, reject) => {
+    db.all(`SELECT * FROM logs ORDER BY timestamp DESC LIMIT ?`, [limit], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
 // Incidents
 function createIncident({ endpoint_id, created_at, resolved = 0, failed_nodes = [], failure_stage = null }) {
   return new Promise((resolve, reject) => {
@@ -151,7 +142,7 @@ function getIncidents() {
   });
 }
 
-// Export
+// --- Export ---
 module.exports = {
   db,
   getEndpoints,
